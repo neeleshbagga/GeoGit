@@ -35,6 +35,11 @@
       <artifactId>geogit-web-app</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.geogit</groupId>
+      <artifactId>geogit-gui</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
   </dependencies>
 
