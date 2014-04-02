@@ -10,8 +10,14 @@ import com.vividsolutions.jts.geom.Envelope;
 public class HRPlusContainerNode {
 	
 	private Map<ObjectId, HRPlusNode> nodeMap = new HashMap<ObjectId, HRPlusNode>();
-	ObjectId objectId;
-	ObjectId parentId;
+	private ObjectId objectId;
+	private ObjectId parentId;
+	
+	private List<ObjectId> layerIds = new ArrayList<ObjectId>();
+	
+	public List<ObjectId> getLayerIds(){
+		return this.layerIds;
+	}
 	
 	public ObjectId getObjectId(){
 		return this.objectId;
@@ -93,6 +99,14 @@ public class HRPlusContainerNode {
 			node.expand(nodeEnv);
 			env = env.intersection(nodeEnv);
 		}
+	}
+	
+	public Envelope getMBR(){
+		Envelope env = new Envelope();
+		for(HRPlusNode node: nodeMap.values()){
+			node.expand(env);
+		}
+		return env;
 	}
 	
 

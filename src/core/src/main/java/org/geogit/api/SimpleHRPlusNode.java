@@ -7,7 +7,7 @@ public class SimpleHRPlusNode{
 	private ObjectId objectId;
 	
 	
-	protected float[] bounds;
+	protected double[] bounds;
 		
 	
 	public SimpleHRPlusNode(HRPlusNode node) {
@@ -15,15 +15,15 @@ public class SimpleHRPlusNode{
 		this.objectId = node.getObjectId();
 	}
 	
+	public SimpleHRPlusNode(){
+		
+	}
+	
 	public ObjectId getObjectId(){
 		 return this.objectId;
 	}
 	
 	
-	public SimpleHRPlusNode(ObjectId objectId){
-		this.objectId = objectId;
-	}
-
 	public double getMinX(){
 		return this.bounds[0];
 	}

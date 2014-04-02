@@ -7,7 +7,7 @@ import com.vividsolutions.jts.geom.Envelope;
 
 public class HRPlusNode extends SimpleHRPlusNode{
 				 
-	 private ObjectId parentId;
+	 private ObjectId parentContainerId;
 	
 	 private List<ObjectId> layerIds = new ArrayList<ObjectId>();
 	 
@@ -18,8 +18,20 @@ public class HRPlusNode extends SimpleHRPlusNode{
 		 return this.child;
 	 }
 	 
-	 public HRPlusNode(ObjectId objectId){
-		 super(objectId);
+	 public void setChild(HRPlusContainerNode child){
+		 this.child = child;
+	 }
+	 
+	 public HRPlusNode(ObjectId layerId, Envelope bounds){
+		 super();
+		 this.layerIds.add(layerId);
+		 this.setBounds(bounds);
+	 }
+	 
+	 public HRPlusNode(List<ObjectId> layerIds, Envelope bounds){
+		 super();
+		 this.layerIds.addAll(layerIds);
+		 this.setBounds(bounds);
 	 }
 	 	 
 	public List<ObjectId> getLayerIds() {
@@ -42,8 +54,21 @@ public class HRPlusNode extends SimpleHRPlusNode{
 	}
 	
 	
-	public ObjectId getParentId(){
-		return this.parentId;
+	public ObjectId getParentContainerId(){
+		return this.parentContainerId;
+	}
+	
+	public Envelope getBounds(){
+		Envelope env = new Envelope();
+		this.expand(env);
+		return env;
+	}
+	
+	public void setBounds(Envelope env){
+		this.bounds[0] = env.getMinX();
+		this.bounds[1] = env.getMinY();
+		this.bounds[2] = env.getMaxX();
+		this.bounds[3] = env.getMaxY();
 	}
 	
 	public void getOverlap(Envelope env){

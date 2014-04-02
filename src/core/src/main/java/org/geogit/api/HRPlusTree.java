@@ -13,35 +13,46 @@ import com.vividsolutions.jts.geom.Envelope;
 
 public class HRPlusTree {
 	
-	private static final int degree = 3;
-	
-	private int treeHeight= 0;
-	
+	private static final int DEGREE = 3;
+		
 	private ObjectId objectId;
 	
-	private Map<ObjectId, HRPlusContainerNode> rootMap = new HashMap<ObjectId, HRPlusContainerNode>();
+	private Map<ObjectId, List<HRPlusContainerNode>> rootMap = new HashMap<ObjectId, List<HRPlusContainerNode>>();
 	 
 	 
-
-	public void insert(final ObjectId layerId){
+	public void insert(final ObjectId layerId, Envelope bounds){
 		
-		HRPlusNode newNode = new HRPlusNode(layerId);
+		HRPlusNode newNode = new HRPlusNode(layerId, bounds);
 		
 		HRPlusContainerNode containerNode = chooseSubtree(newNode);
 		
 		containerNode.addNode(newNode);
 		
-		List<HRPlusContainerNode> newNodes = null;
+		List<HRPlusContainerNode> newContainerNodes = null;
 		
-		if(containerNode.getNumNodes() >= degree){
-			newNodes = treatOverflow(containerNode, layerId);
-			
-			
+		if(containerNode.getNumNodes() >= HRPlusTree.DEGREE){
+			newContainerNodes = treatOverflow(containerNode, layerId);
 		}
 		
-		adjustTree(containerNode, newNodes);
+		List<HRPlusContainerNode> newRoots = adjustTree(containerNode, newContainerNodes, layerId);
 		
+		for(HRPlusContainerNode newRoot : newRoots){
+			this.addRootTableEntry(newRoot);
+		}
 		
+	}
+	
+	private void addRootTableEntry(HRPlusContainerNode newRoot){
+		for(ObjectId layerId : newRoot.getLayerIds()){
+			List<HRPlusContainerNode> roots = this.rootMap.get(layerId);
+			if(roots == null){
+				roots = new ArrayList<HRPlusContainerNode>();
+			}
+			
+			roots.add(newRoot);
+			
+			this.rootMap.put(layerId, roots);
+		}
 	}
 	
 	
@@ -59,7 +70,7 @@ public class HRPlusTree {
 				newContainerNode.addNode(transferNode);
 					
 			}
-			if(newContainerNode.getNumNodes() > degree){
+			if(newContainerNode.getNumNodes() > HRPlusTree.DEGREE){
 				HRPlusContainerNode secondNewContainerNode = keySplitContainerNode(newContainerNode);
 				newContainerNodes.add(secondNewContainerNode);
 			}
@@ -234,25 +245,34 @@ public class HRPlusTree {
 	}
 
 	
-	private HRPlusNode adjustTree(HRPlusContainerNode containerNode, List<HRPlusContainerNode> newLeaves){
+	private List<HRPlusContainerNode> adjustTree(HRPlusContainerNode containerNode, List<HRPlusContainerNode> siblingContainerNodes, ObjectId layerId){
 		
 		HRPlusNode parent;
-		Envelope envelope;
 		while(!this.isRoot(containerNode)){
 			parent = lookupHRPlusNode(containerNode.getParentId());
-			node.expand(envelope);
+			HRPlusContainerNode parentContainer = lookupHRPlusContainerNode(parent.getParentContainerId());
 			
-			parent.expandBounds(envelope);
+			Envelope containerMBR = containerNode.getMBR();
+			parent.setBounds(containerMBR);
 			
-			//some stuff
+			for(HRPlusContainerNode siblingContainerNode : siblingContainerNodes){
+				HRPlusNode newNode = new HRPlusNode(siblingContainerNode.getLayerIds(), siblingContainerNode.getMBR());
+				newNode.setChild(siblingContainerNode);
+				parentContainer.addNode(newNode);				
+			}
 			
-			node = parent;
+			List<HRPlusContainerNode> newContainerNodes = null;
 			
+			if(parentContainer.getNumNodes() > HRPlusTree.DEGREE){
+				newContainerNodes = treatOverflow(parentContainer, layerId);
+			}
 			
-			
+			containerNode = parentContainer;
+			siblingContainerNodes = newContainerNodes;
 			
 		}
-		return leaf;
+		
+		return siblingContainerNodes;
 		
 	}
 	
@@ -263,12 +283,12 @@ public class HRPlusTree {
 	
 	
 	public HRPlusNode lookupHRPlusNode(ObjectId objectId){
-		HRPlusNode node = new HRPlusNode(objectId);
+		HRPlusNode node = new HRPlusNode();//need to look up in the DB
 		return node;
 	}
 	
 	
-	private HRPlusContainerNode getRootForLayerId(ObjectId layerId){
+	private List<HRPlusContainerNode> getRootsForLayerId(ObjectId layerId){
 		return rootMap.get(layerId);
 	}
 	
@@ -277,13 +297,29 @@ public class HRPlusTree {
 	 */
 	private HRPlusContainerNode chooseSubtree(final HRPlusNode newNode){
 		
+		List<HRPlusContainerNode> containerNodes = getRootsForLayerId(newNode.getFirstLayerId());
+		if(containerNodes.isEmpty()){
+			HRPlusContainerNode newContainerNode = new HRPlusContainerNode();
+			return newContainerNode;
+		}
 		
-		HRPlusContainerNode containerNode = getRootForLayerId(newNode.getFirstLayerId());
+		//Choose the container node with the largest intersection area with the new node
+		double maxIntersectionArea = Double.MIN_VALUE;
+		HRPlusContainerNode maxIntersectionContainerNode = containerNodes.get(0);
+		for(HRPlusContainerNode containerNode: containerNodes){
+			double intersectionArea = containerNode.getMBR().intersection(newNode.getBounds()).getArea();
+			if( intersectionArea > maxIntersectionArea){
+				maxIntersectionArea = intersectionArea;
+				maxIntersectionContainerNode = containerNode;
+			}
+		}
 		
-		while(!containerNode.isLeaf()){
+		HRPlusContainerNode containerNode = maxIntersectionContainerNode;
+		
+		while(containerNode.isLeaf()){
 			
 			List<HRPlusNode> nodesForLayer = containerNode.getNodesForLayer(newNode.getFirstLayerId());
-			
+
 			double minEnlargement = Double.MAX_VALUE;
 			double enlargement;
 			Envelope currentEnvelope = new Envelope();
@@ -291,7 +327,7 @@ public class HRPlusTree {
 			
 			HRPlusNode insertionNode = nodesForLayer.get(0);
 			
-			if(containerNode.isOneStepAboveLeafLevel()){
+			if(containerNodes.get(0).isOneStepAboveLeafLevel()){
 				
 				//find the node such that inserting newNode causes the minimum overlap enlargement
 				for(HRPlusNode node : nodesForLayer){
