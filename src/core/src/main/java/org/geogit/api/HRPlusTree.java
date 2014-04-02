@@ -9,13 +9,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.geogit.storage.ObjectDatabase;
+
 import com.vividsolutions.jts.geom.Envelope;
 
-public class HRPlusTree {
+public class HRPlusTree extends HRPlusTreeUtils{
 	
 	private static final int DEGREE = 3;
 		
 	private ObjectId objectId;
+	
+	private ObjectDatabase db;
 	
 	private Map<ObjectId, List<HRPlusContainerNode>> rootMap = new HashMap<ObjectId, List<HRPlusContainerNode>>();
 	 
@@ -80,135 +84,15 @@ public class HRPlusTree {
 		return newContainerNodes;
 	}
 	
-	private double marginOf(Envelope envelope){
-		return 2*envelope.getHeight() + 2*envelope.getWidth();
-	}
-	
-	private Envelope boundingBoxOf(List<SimpleHRPlusNode> nodes){
-		Envelope envelope = new Envelope();
-		for(SimpleHRPlusNode node : nodes){
-			node.expand(envelope);
-		}
-		
-		return envelope;
-		
-	}
-	
-	private List<SimpleHRPlusNode> partitionByMinOverlap(List<SimpleHRPlusNode>minSort, List<SimpleHRPlusNode>maxSort){
-		
-		List<SimpleHRPlusNode> firstGroup = minSort.subList(0, minSort.size()/2);
-		List<SimpleHRPlusNode> secondGroup = minSort.subList(minSort.size() - firstGroup.size(), minSort.size() -1);
-		
-		double minOverlapMinSort = boundingBoxOf(firstGroup).intersection(boundingBoxOf(secondGroup)).getArea();
-		double minOverlapMinSortAreaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-		int minOverlapMinSortSplitPoint = firstGroup.size();
-		
-		double overlap;
-		double areaValue;
-		
-		while(!secondGroup.isEmpty()){
-			firstGroup.add(secondGroup.remove(0));
-			overlap = boundingBoxOf(firstGroup).intersection(boundingBoxOf(secondGroup)).getArea();
-			minOverlapMinSortAreaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-			if(overlap < minOverlapMinSort){
-				minOverlapMinSort = overlap;
-				minOverlapMinSortSplitPoint = firstGroup.size();
-			}else if(overlap == minOverlapMinSort){
-				areaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-				if(areaValue <minOverlapMinSortAreaValue){
-					minOverlapMinSort = overlap;
-					minOverlapMinSortSplitPoint = firstGroup.size();
-					minOverlapMinSortAreaValue = areaValue;
-				}
-				
-			}
-			
-		}
-		
-		firstGroup = maxSort.subList(0, maxSort.size()/2);
-		secondGroup = maxSort.subList(maxSort.size() - firstGroup.size(), maxSort.size() -1);
-		
-		double minOverlapMaxSort = boundingBoxOf(firstGroup).intersection(boundingBoxOf(secondGroup)).getArea();
-		double minOverlapMaxSortAreaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-		int minOverlapMaxSortSplitPoint = firstGroup.size();
-		
-		while(!secondGroup.isEmpty()){
-			firstGroup.add(secondGroup.remove(0));
-			overlap = boundingBoxOf(firstGroup).intersection(boundingBoxOf(secondGroup)).getArea();
-			minOverlapMaxSortAreaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-			if(overlap < minOverlapMinSort){
-				minOverlapMaxSort = overlap;
-				minOverlapMaxSortSplitPoint = firstGroup.size();
-			}else if(overlap == minOverlapMinSort){
-				areaValue = boundingBoxOf(firstGroup).getArea() + boundingBoxOf(secondGroup).getArea();
-				if(areaValue < minOverlapMaxSortAreaValue){
-					minOverlapMaxSort = overlap;
-					minOverlapMaxSortSplitPoint = firstGroup.size();
-					minOverlapMaxSortAreaValue = areaValue;
-				}
-				
-			}
-			
-		}
-		
-		List<SimpleHRPlusNode> partition = new ArrayList<SimpleHRPlusNode>();
-		
-		if(minOverlapMinSort < minOverlapMaxSort || (minOverlapMinSort == minOverlapMaxSort && minOverlapMinSortAreaValue <= minOverlapMaxSortAreaValue)){
-			partition = minSort.subList(0, minOverlapMinSortSplitPoint - 1);
-		}else{
-			partition = maxSort.subList(0, minOverlapMaxSortSplitPoint - 1);
-		}
-		
-		return partition;
-		
-	}
-	
-	private double sumOfMargins(List<SimpleHRPlusNode> nodes){
-		List<SimpleHRPlusNode> firstGroup = nodes.subList(0, nodes.size()/2);
-		List<SimpleHRPlusNode> secondGroup = nodes.subList(nodes.size() - firstGroup.size(), nodes.size() -1);
-		
-		double marginValueSum = 0;
-		
-		while(!secondGroup.isEmpty()){
-			marginValueSum +=  marginOf(boundingBoxOf(firstGroup)) + marginOf(boundingBoxOf(secondGroup));
-			firstGroup.add(secondGroup.remove(0));
-		}
-		return marginValueSum;
-	}
+
 	
 	private HRPlusContainerNode keySplitContainerNode(HRPlusContainerNode containerNode){
 		
 		//Uses R* splitting algorithm
-		List<SimpleHRPlusNode> minXSort = containerNode.getSimpleNodes();
-		List<SimpleHRPlusNode> maxXSort = containerNode.getSimpleNodes();
-		List<SimpleHRPlusNode> minYSort = containerNode.getSimpleNodes();
-		List<SimpleHRPlusNode> maxYSort = containerNode.getSimpleNodes();
-		
-				
-		Collections.sort(minXSort, new Comparator<SimpleHRPlusNode>() {
-		    public int compare(SimpleHRPlusNode n1, SimpleHRPlusNode n2) {
-		    	return Double.compare(n1.getMinX(), n1.getMinX());
-		    }
-		});
-		
-		Collections.sort(maxXSort, new Comparator<SimpleHRPlusNode>() {
-		    public int compare(SimpleHRPlusNode n1, SimpleHRPlusNode n2) {
-		    	return Double.compare(n1.getMaxX(), n1.getMaxX());
-		    }
-		});;
-		
-		 Collections.sort(minYSort, new Comparator<SimpleHRPlusNode>() {
-		    public int compare(SimpleHRPlusNode n1, SimpleHRPlusNode n2) {
-		    	return Double.compare(n1.getMinY(), n1.getMinY());
-		    }
-		});
-		
-		 Collections.sort(maxYSort, new Comparator<SimpleHRPlusNode>() {
-		    public int compare(SimpleHRPlusNode n1, SimpleHRPlusNode n2) {
-		    	return Double.compare(n1.getMaxY(), n1.getMaxY());
-		    }
-		});
-		
+		List<SimpleHRPlusNode> minXSort = minXSort(containerNode.getSimpleNodes());
+		List<SimpleHRPlusNode> maxXSort = maxXSort(containerNode.getSimpleNodes());
+		List<SimpleHRPlusNode> minYSort = minYSort(containerNode.getSimpleNodes());
+		List<SimpleHRPlusNode> maxYSort = maxYSort(containerNode.getSimpleNodes());
 		
 		double xMarginSum = sumOfMargins(minXSort) + sumOfMargins(maxXSort);
 		double yMarginSum = sumOfMargins(minYSort) + sumOfMargins(maxYSort);
@@ -283,10 +167,9 @@ public class HRPlusTree {
 	
 	
 	public HRPlusNode lookupHRPlusNode(ObjectId objectId){
-		HRPlusNode node = new HRPlusNode();//need to look up in the DB
+		HRPlusNode node = this.db.get(objectId);
 		return node;
 	}
-	
 	
 	private List<HRPlusContainerNode> getRootsForLayerId(ObjectId layerId){
 		return rootMap.get(layerId);
