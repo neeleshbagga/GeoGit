@@ -13,10 +13,13 @@ public class HRPlusContainerNode {
 	private ObjectId objectId;
 	private ObjectId parentId;
 	
-	private List<ObjectId> layerIds = new ArrayList<ObjectId>();
-	
+
 	public List<ObjectId> getLayerIds(){
-		return this.layerIds;
+		List<ObjectId> layerIds = new ArrayList<ObjectId>();
+		for(HRPlusNode node : this.nodeMap.values()){
+			layerIds.addAll(node.getLayerIds());
+		}
+		return layerIds;
 	}
 	
 	public ObjectId getObjectId(){
