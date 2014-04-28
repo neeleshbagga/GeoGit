@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeSet;
 
+import org.geogit.api.RevObject.TYPE;
 import org.geogit.storage.NodeStorageOrder;
 import org.geogit.storage.ObjectDatabase;
 
@@ -248,4 +249,5 @@ public abstract class RevTreeImpl extends AbstractRevObject implements RevTree {
         builder.append(']');
         return builder.toString();
     }
+    
 }
