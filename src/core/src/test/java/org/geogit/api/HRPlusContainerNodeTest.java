@@ -1,3 +1,7 @@
+/* Copyright (c) 2014 OpenPlans. All rights reserved.
+ * This code is licensed under the BSD New License, available at the root
+ * application directory.
+ */
 package org.geogit.api;
 
 import static org.junit.Assert.assertTrue;
@@ -16,70 +20,60 @@ public class HRPlusContainerNodeTest {
     @Test
     public void testGetObjectId(){
         // TODO the source method needs an implementation
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertEquals(null, node.getObjectId());
     }
     
     @Test
-    public void testGetParentId(){
-        // TODO the source method needs an implementation
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
-        assertEquals(null, node.getParentId());
+    public void testGetParent(){
+        // Can set parent in constructor
+        HRPlusNode parent = new HRPlusNode(new ObjectId(), new Envelope(), new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode(parent, new ObjectId());
+        assertEquals(parent, node.getParentNode());
+    }    
+    
+    @Test
+    public void testSetParent(){
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusNode parent = new HRPlusNode(new ObjectId(), new Envelope(), new ObjectId());
+        assertEquals(null, node.getParentNode());
+        node.setParentNode(parent);
+        assertEquals(parent, node.getParentNode());
     }
 
     @Test
     public void testGetNumNodesEmptyContainer(){
-        // Create a container
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertEquals(0, node.getNumNodes());
     }
 
     @Test
     public void testGetNumNodesOneNode(){
+        // Create one node, one container. numNodes should be 1.
         ObjectId vid = ObjectId.forString("version");
-        // Create a node
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(), vid);
-        // Create a container, add node
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         assertEquals(1, node.getNumNodes());
     }
     
     @Test
     public void testGetNumNodesTwoNodesUniqueObjectIds(){
+        // Two unique nodes => numNodes is 2
         ObjectId vid = ObjectId.forString("version");
-        // Create unique object ids
         ObjectId idA = ObjectId.forString("zardoz");
         ObjectId idB = ObjectId.forString("zodraz");
-        // Create two nodes
         HRPlusNode childA = new HRPlusNode(idA, new Envelope(), vid);
         HRPlusNode childB = new HRPlusNode(idB, new Envelope(), vid);
-        // Create a container, add node
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(childA); node.addNode(childB);
         assertEquals(2, node.getNumNodes());
     }
     
     @Test
-    public void testGetNumNodesTwoNodesDuplicateObjectIds(){
-        ObjectId vid = ObjectId.forString("version");
-        // Create unique object ids
-        ObjectId idA = ObjectId.forString("zardoz");
-        ObjectId idB = ObjectId.forString("zardoz");
-        // Create two nodes
-        HRPlusNode childA = new HRPlusNode(idA, new Envelope(),vid);
-        HRPlusNode childB = new HRPlusNode(idB, new Envelope(),vid);
-        // Create a container, add node
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        node.addNode(childA); node.addNode(childB);
-        // Should have one id because previous node was overwritten
-        assertEquals(1, node.getNumNodes());
-    }
-    
-    @Test
     public void testGetNumNodesManyNodes(){
         ObjectId vid = ObjectId.forString("version");
-        // Create many unique object ids
+        // Make sure all object ids are unique
         ObjectId idA = ObjectId.forString("a");
         ObjectId idB = ObjectId.forString("b");
         ObjectId idC = ObjectId.forString("c");
@@ -102,8 +96,9 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(),vid);
         // Create a container, add nodes
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        // A funny thing here is that addNode doesn't ever split the container
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        // A funny thing here is that addNode doesn't ever split the container.
+        // So this is overflowed, but doesn't matter for this test.
         node.addNode(childA); node.addNode(childB);
         node.addNode(childC); node.addNode(childD);
         node.addNode(childE); node.addNode(childF);
@@ -116,8 +111,6 @@ public class HRPlusContainerNodeTest {
     @Test
     public void testGetNumNodesManyNodesManyContainers(){
         ObjectId vid = ObjectId.forString("version");
-        // Euclid only proved things up to 3. What's good enough for Euclid is good enough for me.
-        // Create many unique object ids
         ObjectId idA = ObjectId.forString("a");
         ObjectId idB = ObjectId.forString("b");
         ObjectId idC = ObjectId.forString("c");
@@ -140,10 +133,10 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(),vid);
         // Create a container, add nodes
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNodeA = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNodeB1 = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNodeB2 = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNodeA = new HRPlusContainerNode();
+        HRPlusContainerNode subNodeB1 = new HRPlusContainerNode();
+        HRPlusContainerNode subNodeB2 = new HRPlusContainerNode();
         // Create a hierarchy with max depth 3
         node.addNode(childA); node.addNode(childB);
         subNodeA.addNode(childC); subNodeA.addNode(childD);
@@ -162,8 +155,8 @@ public class HRPlusContainerNodeTest {
     @Test
     public void testAddNode(){
         ObjectId vid = ObjectId.forString("version");
-        // Hopefully this works, otherwise the above tests are questionable...
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+
+        HRPlusContainerNode node = new HRPlusContainerNode();
         
         assertEquals(0, node.getNumNodes());
         
@@ -171,14 +164,14 @@ public class HRPlusContainerNodeTest {
         node.addNode(child);
         
         assertEquals(1, node.getNumNodes());
+        // Adding should also change parentContainer
+        assertEquals(node, child.getParentContainer());
     }
     
     @Test
     public void testRemoveNodeEmptyContainer(){
-        ObjectId vid = ObjectId.forString("version");
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        
-        assertEquals(null, node.removeNode(new ObjectId()));
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        assertFalse(node.removeNode(new HRPlusNode(new Envelope(), new ObjectId())));
     }
     
     @Test
@@ -187,10 +180,10 @@ public class HRPlusContainerNodeTest {
         ObjectId id = ObjectId.forString("objectid");
         HRPlusNode child = new HRPlusNode(id, new Envelope(),vid);
 
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
-        assertEquals(child, node.removeNode(id));
+        assertTrue(node.removeNode(child));
     }
     
     
@@ -204,22 +197,21 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(idA, new Envelope(),vid);
         HRPlusNode childB = new HRPlusNode(idB, new Envelope(),vid);
 
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
 
         node.addNode(childA);
         childA.setChild(subNode);
         subNode.addNode(childB);
         // Shouldn't remove anything. Remove doesn't act recursively on containers
-        assertEquals(null, node.removeNode(idB));
+        assertFalse(node.removeNode(childB));
         // Should remove, just a sanity check
-        assertEquals(childA, node.removeNode(idA));
+        assertTrue(node.removeNode(childA));
     }
     
     @Test
     public void testGetNodesEmptyContainer(){
-        ObjectId vid = ObjectId.forString("version");
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         // empty list
         List<HRPlusNode> nodes = new ArrayList<HRPlusNode>();
         assertEquals(nodes, node.getNodes());
@@ -230,7 +222,7 @@ public class HRPlusContainerNodeTest {
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
         
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
 
         List<HRPlusNode> nodes = node.getNodes();
@@ -265,7 +257,7 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(),vid);
         // Create a container, add node
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
 
         node.addNode(childA); node.addNode(childB);
         node.addNode(childC); node.addNode(childD);
@@ -286,16 +278,16 @@ public class HRPlusContainerNodeTest {
 
     @Test
     public void testGetNodesSubContainer(){
+        // getNodes ignores nodes in sub-containers
         ObjectId vid = ObjectId.forString("version");
-        // Ignores nodes in sub-containers
         ObjectId idA = ObjectId.forString("idA");
         ObjectId idB = ObjectId.forString("idB");
 
         HRPlusNode childA = new HRPlusNode(idA, new Envelope(),vid);
         HRPlusNode childB = new HRPlusNode(idB, new Envelope(),vid);
         
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         subNode.addNode(childB);
         childA.setChild(subNode);
@@ -309,7 +301,7 @@ public class HRPlusContainerNodeTest {
     public void testIsLeafNonEmptyLeafChild(){
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         assertTrue(node.isLeaf());
@@ -319,8 +311,8 @@ public class HRPlusContainerNodeTest {
     public void testIsLeafNonEmptyNonLeafChild(){
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(child);
         child.setChild(subNode);
         
@@ -330,13 +322,13 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testIsLeafEmptyContainer(){
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertTrue(node.isLeaf());
     }
     
     @Test
     public void testIsEmptyPass(){
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertTrue(node.isEmpty());
     }
     
@@ -344,7 +336,7 @@ public class HRPlusContainerNodeTest {
     public void testIsEmptyFail(){
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         assertFalse(node.isEmpty());
@@ -352,7 +344,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testIsOneStepAboveLeafLevelEmptyContainer(){
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertFalse(node.isOneStepAboveLeafLevel());
     }
     
@@ -360,7 +352,7 @@ public class HRPlusContainerNodeTest {
     public void testIsOneStepAboveLeafLevelNonEmptyContainer(){
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         assertFalse(node.isOneStepAboveLeafLevel());
@@ -370,8 +362,8 @@ public class HRPlusContainerNodeTest {
     public void testIsOneStepAboveLeafLevelHasEmptySubContainer(){
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode child = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(child);
         child.setChild(subNode);
         
@@ -383,8 +375,8 @@ public class HRPlusContainerNodeTest {
         ObjectId vid = ObjectId.forString("version");
         HRPlusNode childA = new HRPlusNode(new ObjectId(), new Envelope(),vid);
         HRPlusNode childB = new HRPlusNode(new ObjectId(), new Envelope(),vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         childA.setChild(subNode);
         subNode.addNode(childB);
@@ -398,31 +390,32 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(new ObjectId(), new Envelope(),vid);
         HRPlusNode childB = new HRPlusNode(new ObjectId(), new Envelope(),vid);
 
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subSubNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
+        HRPlusContainerNode subSubNode = new HRPlusContainerNode();
 
         node.addNode(childA);
         childA.setChild(subNode);
         subNode.addNode(childB);
         childB.setChild(subSubNode);
-        // Sub-sub means nodes in sub container are not leaves
+
         assertFalse(node.isOneStepAboveLeafLevel());
     }
     
     @Test
     public void testGetMBREmptyContainer(){
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
 
         assertEquals(new Envelope(), node.getMBR());
     }
     
     @Test
     public void testGetMBRNonEmptyContainer(){
+        // Container with one node should have MBR identical to that node's envelope.
         ObjectId vid = ObjectId.forString("version");
         Envelope env = new Envelope(-10,10,-10,10);
         HRPlusNode childA = new HRPlusNode(new ObjectId(), env,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         
         node.addNode(childA);
         
@@ -431,6 +424,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testGetMBRManyNodesDisjointEnvelopes(){
+        // MBR of container should surround all disjoint envelopes
         ObjectId vid = ObjectId.forString("version");
 
         ObjectId idA = ObjectId.forString("a");
@@ -455,7 +449,7 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(-2,-1,8,9),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(-1,0,9,10),vid);
         // Create a container, add nodes
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(childA); node.addNode(childB);
         node.addNode(childC); node.addNode(childD);
         node.addNode(childE); node.addNode(childF);
@@ -467,6 +461,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testGetMBRManyNodesOverlapEnvelopes(){
+        // Overlap should not change behavior. MBR should surround all nodes' envelopes.
         ObjectId vid = ObjectId.forString("version");
 
         ObjectId idA = ObjectId.forString("a");
@@ -491,7 +486,7 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(-8,-4,3,6),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(-1,0,0,1),vid);
         // Create a container, add nodes
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(childA); node.addNode(childB);
         node.addNode(childC); node.addNode(childD);
         node.addNode(childE); node.addNode(childF);
@@ -503,6 +498,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testGetMBRSubContainer(){
+        // Nodes within sub-container do not affect MBR.
         ObjectId vid = ObjectId.forString("version");
 
         ObjectId idA = ObjectId.forString("idA");
@@ -513,8 +509,8 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(idA, envA,vid);
         HRPlusNode childB = new HRPlusNode(idA, envB,vid);
         
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         subNode.addNode(childB);
         childA.setChild(subNode);
@@ -524,7 +520,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testGetOverlapEmptyContainer(){
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         
         Envelope env1 = new Envelope();
         Envelope env2 = new Envelope(-9000, 9000, -9000, 9000);
@@ -539,7 +535,7 @@ public class HRPlusContainerNodeTest {
 
         Envelope envA = new Envelope(0,1,0,1);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         Envelope envB = new Envelope(-9000, 9000, -9000, 9000);
@@ -553,7 +549,7 @@ public class HRPlusContainerNodeTest {
 
         Envelope envA = new Envelope(-9000, 9000, -9000, 9000);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         Envelope envB = new Envelope(0,1,0,1);
@@ -567,7 +563,7 @@ public class HRPlusContainerNodeTest {
 
         Envelope envA = new Envelope(0,1,0,1);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         Envelope envC = new Envelope(0,1,-2,-1);
@@ -585,8 +581,8 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(idA, envA,vid);
         HRPlusNode childB = new HRPlusNode(idA, envB,vid);
         
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         subNode.addNode(childB);
         childA.setChild(subNode);
@@ -597,9 +593,7 @@ public class HRPlusContainerNodeTest {
     
     @Test
     public void testQueryEmptyContainer(){
-        ObjectId vid = ObjectId.forString("asecondversion");
-        
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
 
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
         
@@ -613,33 +607,32 @@ public class HRPlusContainerNodeTest {
     public void testQueryNonEmptyContainerPassFullOverlap(){
         ObjectId vid = ObjectId.forString("asecondversion");
 
-        Envelope envA = new Envelope(-9000, 9000, -9000, 9000);
+        Envelope envA = new Envelope(5,34,-432,-20);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
         
-        node.query(new Envelope(5,34,-432,-20), matches);
+        node.query(new Envelope(-9000, 9000, -9000, 9000), matches);
         assertEquals(1, matches.size());
         assertEquals(child, matches.get(0));
     }
     
     @Test
-    public void testQueryNonEmptyContainerPassPartialOverlap(){
+    public void testQueryNonEmptyContainerFailPartialOverlap(){
         ObjectId vid = ObjectId.forString("asecondversion");
 
         Envelope envA = new Envelope(-9000, 0, -9000, 0);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
         
         node.query(new Envelope(0, 9000, 0, 9000), matches);
-        // Still matches even if they intersect only at one point
-        assertEquals(1, matches.size());
-        assertEquals(child, matches.get(0));
+        // Query fails unless node is completely contained
+        assertEquals(0, matches.size());
     }
     
     @Test
@@ -647,7 +640,7 @@ public class HRPlusContainerNodeTest {
         ObjectId vid = ObjectId.forString("asecondversion");
         Envelope envA = new Envelope(0,1,0,1);
         HRPlusNode child = new HRPlusNode(new ObjectId(), envA,vid);
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
         node.addNode(child);
         
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
@@ -660,7 +653,6 @@ public class HRPlusContainerNodeTest {
     public void testQueryManyNodes(){
         ObjectId vid = ObjectId.forString("asecondversion");
         // Create many unique object ids
-        ObjectId sharedId = ObjectId.forString("zed");
         ObjectId idA = ObjectId.forString("a");
         ObjectId idB = ObjectId.forString("b");
         ObjectId idC = ObjectId.forString("c");
@@ -683,7 +675,7 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childI = new HRPlusNode(idI, new Envelope(-5,-90,-10,10),vid);
         HRPlusNode childJ = new HRPlusNode(idJ, new Envelope(-3,-90,-3,-99),vid);
         // Create a container, add node
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
 
         node.addNode(childA); node.addNode(childB);
         node.addNode(childC); node.addNode(childD);
@@ -714,8 +706,8 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(idA, envA,vid);
         HRPlusNode childB = new HRPlusNode(idA, envB,vid);
             
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         subNode.addNode(childB);
         childA.setChild(subNode);
@@ -738,31 +730,33 @@ public class HRPlusContainerNodeTest {
         HRPlusNode childA = new HRPlusNode(idA, envA,vid);
         HRPlusNode childB = new HRPlusNode(idA, envB,vid);
             
-        HRPlusContainerNode node = new HRPlusContainerNode(vid);
-        HRPlusContainerNode subNode = new HRPlusContainerNode(vid);
+        HRPlusContainerNode node = new HRPlusContainerNode();
+        HRPlusContainerNode subNode = new HRPlusContainerNode();
         node.addNode(childA);
         subNode.addNode(childB);
         childA.setChild(subNode);
         
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
-        // Sub container is NOT ignored if node's envelope matches
+
         node.query(new Envelope(-10,10,-10,10), matches);
-        assertEquals(2, matches.size());
-        assertTrue(matches.contains(childA));
-        assertTrue(matches.contains(childB));
+        
+        // Parent node is skipped
+        assertEquals(1, matches.size());
+        assertEquals(childB, matches.get(0));
     }
     
     @Test
     public void testGetType(){
         // TODO implement that method!
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertEquals(null, node.getType());
     }
 
     @Test
     public void testGetId(){
         // TODO implement that method!
-        HRPlusContainerNode node = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode node = new HRPlusContainerNode();
         assertEquals(null, node.getId());
     }
 }
+

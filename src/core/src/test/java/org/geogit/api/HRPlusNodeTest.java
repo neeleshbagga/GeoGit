@@ -1,3 +1,7 @@
+/* Copyright (c) 2014 OpenPlans. All rights reserved.
+ * This code is licensed under the BSD New License, available at the root
+ * application directory.
+ */
 package org.geogit.api;
 
 import static org.junit.Assert.assertEquals;
@@ -13,6 +17,9 @@ import com.vividsolutions.jts.geom.Envelope;
 
 public class HRPlusNodeTest {
     
+    /*
+     * Avoids deprecated assertEquals. 
+     */
     double DOUBLE_EPSILON = 0.000001;
     
     @Test
@@ -111,7 +118,7 @@ public class HRPlusNodeTest {
     
     @Test
     public void testGetChildNotNull(){
-        HRPlusContainerNode child = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode child = new HRPlusContainerNode();
         HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(),new ObjectId());
         node.setChild(child);
         assertEquals(child, node.getChild());
@@ -126,17 +133,29 @@ public class HRPlusNodeTest {
     
     @Test
     public void testIsLeafFalse(){
-        HRPlusContainerNode child = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode child = new HRPlusContainerNode();
         HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(),new ObjectId());
         node.setChild(child);
         assertFalse(node.isLeaf()); 
     }
     
     @Test
-    public void testGetParentContainerId(){
-        // TODO this field is never set!
+    public void testSetParentContainer(){
         HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(),new ObjectId());
-        assertEquals(null, node.getParentContainerId());
+        HRPlusContainerNode parent = new HRPlusContainerNode();
+        assertEquals(null, node.getParentContainer());
+        node.setParentContainer(parent);
+        assertEquals(parent, node.getParentContainer());
+    }    
+
+    @Test
+    public void testGetParentContainer(){
+        // Adding a node to a container should set that node's parent
+        HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(),new ObjectId());
+        HRPlusContainerNode parent = new HRPlusContainerNode();
+        assertEquals(null, node.getParentContainer());
+        parent.addNode(node);
+        assertEquals(parent, node.getParentContainer());
     }
     
     @Test
@@ -198,7 +217,7 @@ public class HRPlusNodeTest {
         // Set up children.
         Envelope childEnv = new Envelope(-2,-1,-2,-1);
         HRPlusNode childNode = new HRPlusNode(new ObjectId(), childEnv,new ObjectId());
-        HRPlusContainerNode child = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode child = new HRPlusContainerNode();
         child.addNode(childNode);
         // Set up parent. Envelope is disjoint from child.
         Envelope env = new Envelope(0, 10, 0, 10);
@@ -215,7 +234,7 @@ public class HRPlusNodeTest {
         // Set up children.
         Envelope childEnv = new Envelope(-2,-1,-2,-1);
         HRPlusNode childNode = new HRPlusNode(new ObjectId(), childEnv,new ObjectId());
-        HRPlusContainerNode child = new HRPlusContainerNode(new ObjectId());
+        HRPlusContainerNode child = new HRPlusContainerNode();
         child.addNode(childNode);
         // Set up parent. Envelope is disjoint from child.
         Envelope env = new Envelope(0, 10, 0, 10);
@@ -229,19 +248,34 @@ public class HRPlusNodeTest {
     
     @Test
     public void testQueryLeafSuccess(){
+        // Query fails because node intersects envelope only partially
+        Envelope env = new Envelope(-5,5,-5,5);
+        HRPlusNode node = new HRPlusNode(new ObjectId(), env,new ObjectId());
+        List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
+        
+        node.query(env, matches);
+        
+        assertEquals(1, matches.size());
+        assertEquals(node, matches.get(0));
+        assertTrue(node.isLeaf());
+    }   
+    
+    @Test
+    public void testQueryLeafFailurePartialOverlap(){
+        // Query fails because node intersects envelope only partially
         Envelope env = new Envelope(-5,5,-5,5);
         HRPlusNode node = new HRPlusNode(new ObjectId(), env,new ObjectId());
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
         
         node.query(new Envelope(-6,-4,-6,-4), matches);
         
-        assertEquals(1, matches.size());
-        assertEquals(node, matches.get(0));
+        assertEquals(0, matches.size());
         assertTrue(node.isLeaf());
     }
     
     @Test
-    public void testQueryLeafFailure(){
+    public void testQueryLeafFailureNoOverlap(){
+        // Query fails because node does not intersect envelope
         Envelope env = new Envelope(-5,5,-5,5);
         HRPlusNode node = new HRPlusNode(new ObjectId(), env,new ObjectId());
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
@@ -260,7 +294,7 @@ public class HRPlusNodeTest {
         HRPlusNode childB = new HRPlusNode(ObjectId.forString("node 2"), new Envelope(2,3,2,3),ObjectId.forString("v1"));
         HRPlusNode childC = new HRPlusNode(ObjectId.forString("node 3"), new Envelope(-2,-3,2,3),ObjectId.forString("v1"));
        
-        HRPlusContainerNode child = new HRPlusContainerNode(ObjectId.forString("v1"));
+        HRPlusContainerNode child = new HRPlusContainerNode();
         child.addNode(childA); 
         child.addNode(childB); 
         child.addNode(childC);
@@ -271,26 +305,28 @@ public class HRPlusNodeTest {
         List<HRPlusNode> matches = new ArrayList<HRPlusNode>();
         Envelope env = new Envelope(-5,5,-5,5);
         node.query(env, matches);
-        
-        assertEquals(4, matches.size());
-        assertTrue(matches.contains(node));
+        // Query should find all leaves. Skip the parent.
+        assertEquals(3, matches.size());
         assertTrue(matches.contains(childA));
         assertTrue(matches.contains(childB));
         assertTrue(matches.contains(childC));
         assertFalse(node.isLeaf());
+        assertTrue(childA.isLeaf());
+        assertTrue(childB.isLeaf());
+        assertTrue(childC.isLeaf());
     }
   
-  /*  @Test
+    @Test
     public void testGetType(){
         // TODO implement that method!
-        HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope());
+        HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(), new ObjectId());
         assertEquals(null, node.getType());
     }
     
     @Test
     public void testGetId(){
         // TODO implement that method!
-        HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope());
+        HRPlusNode node = new HRPlusNode(new ObjectId(), new Envelope(), new ObjectId());
         assertEquals(null, node.getId());
-    }*/
+    }
 }
